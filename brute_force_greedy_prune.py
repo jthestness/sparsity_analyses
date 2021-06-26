@@ -25,6 +25,7 @@ parser.add_argument('--debug', action='store_true')
 parser.add_argument('--projection', default='k')
 parser.add_argument('--layer', default=0, type=int)
 parser.add_argument('--step_id', default=90000, type=int)
+parser.add_argument('--full_multiply', action='store_true')
 args = parser.parse_args()
 
 
@@ -47,31 +48,33 @@ embstdev = np.std(embed, axis=-1, keepdims=True)
 embed = (embed - embmean) / embstdev
 proj_embed = np.matmul(embed, proj_wts)
 
-# TODO: There might be an even faster way to do this by subtracting the
-# modified column from the partial_result matrix below rather than
-# multiplying the modified weights column by the whole embedding matrix
-# again...
-# TODO: Make the algorithm dynamic: If it finds a new best_error as it
-# is walking through the small weights, extend the set of weights to
-# consider past the current wt by, say, 100 more weights
+# TODO: Vectorize the algorithm below!
 
 curr_wts = proj_wts.copy()
 # TODO: curr_corr_wts = proj_wts.copy()
-top_k = 200
-for iter in range(proj_wts.size):
+top_k = 1000
+for iter in tqdm(range(proj_wts.size)):
+# for iter in range(proj_wts.size):
     partial_result = np.matmul(embed, curr_wts)
     emb_proj_errors = np.zeros((top_k))
+    emb_proj_errors.fill(np.inf)
     for argmin_position in range(min(top_k, argsort_proj_wts.size)):
         argmin_idx = argsort_proj_wts[argmin_position]
         col_id = argmin_idx % proj_wts.shape[1]
         row_id = argmin_idx // proj_wts.shape[1]
 
         if curr_wts[row_id, col_id] != 0.0:
-            curr_col = curr_wts[:,col_id].copy()
-            curr_col[row_id] = 0.0
-            recon_embed = partial_result.copy()
-            recon_embed[:,col_id] = np.matmul(embed, curr_col)
-            emb_proj_error = np.linalg.norm(recon_embed - proj_embed)
+            # recon_embed = partial_result.copy()
+            if args.full_multiply:
+                curr_col = curr_wts[:,col_id].copy()
+                curr_col[row_id] = 0.0
+                diff_recon_col = partial_result[:,col_id] - np.matmul(embed, curr_col)
+            else:
+                # Even quicker way: This is about 10-25% faster
+                # The difference above is just the product of the weight being
+                # zeroed multiplied by the embedding column (at row_id)
+                diff_recon_col = curr_wts[row_id, col_id] * embed[:,row_id]
+            emb_proj_error = np.linalg.norm(diff_recon_col)
             emb_proj_errors[argmin_position] = emb_proj_error
     min_wt = curr_wts[argsort_proj_wts[0] // proj_wts.shape[1], argsort_proj_wts[0] % proj_wts.shape[1]]
     min_wt_error = emb_proj_errors[0]

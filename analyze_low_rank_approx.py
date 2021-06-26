@@ -75,10 +75,30 @@ sort_proj_wts = np.sort(abs_proj_wts, axis=None)
 # Layer normalize embedding tokens
 embsample = np.arange(400) * 125
 embed = embed[embsample]
+
+# TODO: REMOVE ME!
+# Try setting the embedding to a random initialization
+# embed = np.random.normal(size=embed.shape)
+
+# TODO: REMOVE ME!
+# Try setting the embedding to the standard basis
+# embed = np.eye(proj_wts.shape[0])[:400]
+
+# TODO: REMOVE ME!
+# Try setting the embedding to a random orthonormal basis
+# from scipy.stats import ortho_group
+# embed = ortho_group.rvs(dim=proj_wts.shape[0])[:400]
+
+# TODO: REMOVE ME!
+# What happens when the embeddings (activations) are low-rank?
+# emb_u, emb_s, emb_vh = np.linalg.svd(embed)
+# embed = reconstruct_low_rank(emb_u, emb_s, emb_vh, 50)
+
 embmean = np.mean(embed, axis=-1, keepdims=True)
 embstdev = np.std(embed, axis=-1, keepdims=True)
 embed = (embed - embmean) / embstdev
 proj_embed = np.matmul(embed, proj_wts)
+
 
 # For each rank 1 to full
 #  - Reconstruct weights
