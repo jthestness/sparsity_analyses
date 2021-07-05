@@ -41,23 +41,19 @@ def calc_kl_divergence(histo_a, histo_b, epsilon=1e-15):
     kl_div = prob_mass * np.absolute(log_ratio)
     return kl_div.sum()
 
-def calc_approx_errors(orig_wts, approx_wts, embed, orig_proj_embed):
+def calc_approx_errors(orig_wts, approx_wts, embed, orig_proj_embed, rescale_weights=False):
+    # Whether to rescale weights
+    if rescale_weights:
+        approx_wts = approx_wts * (np.linalg.norm(orig_wts) / np.linalg.norm(approx_wts))
     # Direct comparison of original and approximated weights
     recon_dist = np.linalg.norm(approx_wts - orig_wts)
     recon_len_diff = np.absolute(np.linalg.norm(approx_wts) - np.linalg.norm(orig_wts))
     recon_embed = np.matmul(embed, approx_wts)
     recon_embed_dist = np.linalg.norm(recon_embed - orig_proj_embed)
     recon_embed_len_diff = np.absolute(np.linalg.norm(recon_embed) - np.linalg.norm(orig_proj_embed))
-    # Correct the magnitude of the approximated weights
-    approx_corr_wts = approx_wts * (np.linalg.norm(orig_wts) / np.linalg.norm(approx_wts))
-    corr_recon_dist = np.linalg.norm(approx_corr_wts - orig_wts)
-    corr_recon_len_diff = np.absolute(np.linalg.norm(approx_corr_wts) - np.linalg.norm(orig_wts))
-    corr_recon_embed = np.matmul(embed, approx_corr_wts)
-    corr_recon_embed_dist = np.linalg.norm(corr_recon_embed - orig_proj_embed)
-    corr_recon_embed_len_diff = np.absolute(np.linalg.norm(corr_recon_embed) - np.linalg.norm(orig_proj_embed))
     recon_embed_histo = np.histogram(recon_embed, density=True, bins=bins)
     kl_div = calc_kl_divergence(proj_embed_histo, recon_embed_histo)
-    return recon_dist, recon_len_diff, recon_embed_dist, recon_embed_len_diff, corr_recon_dist, corr_recon_len_diff, corr_recon_embed_dist, corr_recon_embed_len_diff, kl_div
+    return recon_dist, recon_len_diff, recon_embed_dist, recon_embed_len_diff, kl_div
 
 
 parser = argparse.ArgumentParser()
@@ -73,6 +69,7 @@ parser.add_argument('--input_orthonormal_basis', action='store_true')
 parser.add_argument('--input_reduce_rank', default=0, type=int)
 parser.add_argument('--sample_input', default=400, type=int)
 parser.add_argument('--weights_reduce_rank', default=0, type=int)
+parser.add_argument('--weights_rescale', action='store_true')
 args = parser.parse_args()
 
 outdir = 'outputs/running_on_cs1/gpu/gpt2_small_msl128_bs144_lr0.00028_0'
@@ -147,9 +144,8 @@ sparse_embed_histos = []
 for rank in create_range(hidden_size):
     lr_proj_wts = reconstruct_low_rank(u, s, vh, rank)
     (krecon_dist, krecon_len_diff, krecon_embed_dist, krecon_embed_len_diff,
-     kcrecon_dist, kcrecon_len_diff, kcrecon_embed_dist, kcrecon_embed_len_diff,
      krecon_kl_div) = \
-        calc_approx_errors(proj_wts, lr_proj_wts, embed, proj_embed)
+        calc_approx_errors(proj_wts, lr_proj_wts, embed, proj_embed, args.weights_rescale)
     lowrank_embed = np.matmul(embed, lr_proj_wts)
     lowrank_embed_histos.append(np.histogram(lowrank_embed, density=True, bins=bins))
 
@@ -161,14 +157,13 @@ for rank in create_range(hidden_size):
     sparse_proj_wts = np.where(abs_proj_wts >= min_nonzero_k_wt, proj_wts, 0.0)
 
     (sparse_dist, sparse_len_diff, sparse_embed_dist, sparse_embed_len_diff,
-     corr_sparse_dist, corr_sparse_len_diff, corr_sparse_embed_dist, corr_sparse_embed_len_diff,
      sparse_kl_div) = \
-        calc_approx_errors(proj_wts, sparse_proj_wts, embed, proj_embed)
+        calc_approx_errors(proj_wts, sparse_proj_wts, embed, proj_embed, args.weights_rescale)
     sparse_embed = np.matmul(embed, sparse_proj_wts)
     sparse_embed_histos.append(np.histogram(sparse_embed, density=True, bins=bins))
 
     if not args.interpolate:
-        print(f'{rank}\t{sparsity:.2f}%\t{krecon_dist:.4f}\t{krecon_len_diff:.4f}\t{krecon_embed_dist:.4f}\t{krecon_embed_len_diff:.4f}\t{kcrecon_embed_dist:.4f}\t{kcrecon_embed_len_diff:.4f}\t{sparse_dist:.4f}\t{sparse_len_diff:.4f}\t{sparse_embed_dist:.4f}\t{sparse_embed_len_diff:.4f}\t{corr_sparse_embed_dist:.4f}\t{corr_sparse_embed_len_diff:.4f}\t\t\t{krecon_kl_div:.6f}\t{sparse_kl_div:.6f}')
+        print(f'{rank}\t{sparsity:.2f}%\t{krecon_dist:.4f}\t{krecon_len_diff:.4f}\t{krecon_embed_dist:.4f}\t{krecon_embed_len_diff:.4f}\t{sparse_dist:.4f}\t{sparse_len_diff:.4f}\t{sparse_embed_dist:.4f}\t{sparse_embed_len_diff:.4f}\t\t\t{krecon_kl_div:.6f}\t{sparse_kl_div:.6f}')
 
     # TODO(joel): We want to analyze how the low-rank and pruned
     # approximations accumulate error as we interpolate from the true weights
@@ -179,24 +174,21 @@ for rank in create_range(hidden_size):
         for interp in [0.0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 0.8, 0.9, 0.95, 0.98, 0.99, 1.0]:
             krecon_interp = lr_proj_wts * interp + proj_wts * (1.0 - interp)
             (krecon_dist, krecon_len_diff, krecon_embed_dist, krecon_embed_len_diff,
-             kcrecon_dist, kcrecon_len_diff, kcrecon_embed_dist, kcrecon_embed_len_diff,
              krecon_kl_div) = \
-                calc_approx_errors(proj_wts, krecon_interp, embed, proj_embed)
-            print(f'  LRReconInterp\t{rank}\t{sparsity:.2f}%\t{interp}\t{krecon_dist:.4f}\t{krecon_len_diff:.4f}\t{krecon_embed_dist:.4f}\t{krecon_embed_len_diff:.4f}\t{kcrecon_dist:.4f}\t{kcrecon_len_diff:.4f}\t{kcrecon_embed_dist:.4f}\t{kcrecon_embed_len_diff:.4f}\t{krecon_kl_div:.4f}')
+                calc_approx_errors(proj_wts, krecon_interp, embed, proj_embed, args.weights_rescale)
+            print(f'  LRReconInterp\t{rank}\t{sparsity:.2f}%\t{interp}\t{krecon_dist:.4f}\t{krecon_len_diff:.4f}\t{krecon_embed_dist:.4f}\t{krecon_embed_len_diff:.4f}\t{krecon_kl_div:.4f}')
 
             sparse_interp = sparse_proj_wts * interp + proj_wts * (1.0 - interp)
             (sparse_dist, sparse_len_diff, sparse_embed_dist, sparse_embed_len_diff,
-             corr_sparse_dist, corr_sparse_len_diff, corr_sparse_embed_dist, corr_sparse_embed_len_diff,
              sparse_kl_div) = \
-                calc_approx_errors(proj_wts, sparse_interp, embed, proj_embed)
-            print(f'  PruneInterp\t{rank}\t{sparsity:.2f}%\t{interp}\t{sparse_dist:.4f}\t{sparse_len_diff:.4f}\t{sparse_embed_dist:.4f}\t{sparse_embed_len_diff:.4f}\t{corr_sparse_dist:.4f}\t{corr_sparse_len_diff:.4f}\t{corr_sparse_embed_dist:.4f}\t{corr_sparse_embed_len_diff:.4f}\t{sparse_kl_div:.4f}')
+                calc_approx_errors(proj_wts, sparse_interp, embed, proj_embed, args.weights_rescale)
+            print(f'  PruneInterp\t{rank}\t{sparsity:.2f}%\t{interp}\t{sparse_dist:.4f}\t{sparse_len_diff:.4f}\t{sparse_embed_dist:.4f}\t{sparse_embed_len_diff:.4f}\t{sparse_kl_div:.4f}')
 
             sparse_interp = sparse_proj_wts * interp + np.eye(sparse_proj_wts.shape[0]) * (1.0 - interp)
             (sparse_dist, sparse_len_diff, sparse_embed_dist, sparse_embed_len_diff,
-             corr_sparse_dist, corr_sparse_len_diff, corr_sparse_embed_dist, corr_sparse_embed_len_diff,
              sparse_kl_div) = \
-                calc_approx_errors(proj_wts, sparse_interp, embed, proj_embed)
-            print(f'  PruneInterpIdent\t{rank}\t{sparsity:.2f}%\t{interp}\t{sparse_dist:.4f}\t{sparse_len_diff:.4f}\t{sparse_embed_dist:.4f}\t{sparse_embed_len_diff:.4f}\t{corr_sparse_dist:.4f}\t{corr_sparse_len_diff:.4f}\t{corr_sparse_embed_dist:.4f}\t{corr_sparse_embed_len_diff:.4f}\t{sparse_kl_div:.4f}')
+                calc_approx_errors(proj_wts, sparse_interp, embed, proj_embed, args.weights_rescale)
+            print(f'  PruneInterpIdent\t{rank}\t{sparsity:.2f}%\t{interp}\t{sparse_dist:.4f}\t{sparse_len_diff:.4f}\t{sparse_embed_dist:.4f}\t{sparse_embed_len_diff:.4f}\t{sparse_kl_div:.4f}')
 
     if args.debug:
         import pdb
