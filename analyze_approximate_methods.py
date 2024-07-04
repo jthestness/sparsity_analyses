@@ -51,8 +51,18 @@ def calc_approx_errors(orig_wts, approx_wts, embed, orig_proj_embed, rescale_wei
     recon_embed = np.matmul(embed, approx_wts)
     recon_embed_dist = np.linalg.norm(recon_embed - orig_proj_embed)
     recon_embed_len_diff = np.absolute(np.linalg.norm(recon_embed) - np.linalg.norm(orig_proj_embed))
+    # TODO(joel): Add 1-norm, inf-norm and return
     recon_embed_histo = np.histogram(recon_embed, density=True, bins=bins)
     kl_div = calc_kl_divergence(proj_embed_histo, recon_embed_histo)
+    # TODO(joel): Add norm of difference between
+    # NOTE: My intuition is screaming that we're pruning weights in a silly
+    # way for transformer models or at least for self-attention mechanisms...
+    # Pruning single weights perturbs token/embed vectors all in a
+    # systematically biased direction, so relationships between vectors
+    # collapse!
+    #   - np.matmul(orig_proj_embed, np.transpose(orig_proj_embed))
+    #   - np.matmul(np.matmul(approx_wts, embed), np.transpose(orig_proj_embed))
+    #   This is a measure of how much the dot products between vectors change (e.g., like attention)
     return recon_dist, recon_len_diff, recon_embed_dist, recon_embed_len_diff, kl_div
 
 
@@ -131,6 +141,9 @@ proj_embed = np.matmul(embed, proj_wts)
 proj_embed_histo = np.histogram(proj_embed, density=True, bins=bins)
 in_out_kl_div = calc_kl_divergence(proj_embed_histo, embed_histo)
 print(f'Input-to-output distribution KL divergence: {in_out_kl_div}')
+
+import pdb
+pdb.set_trace()
 
 # For each rank 1 to full
 #  - Reconstruct weights
