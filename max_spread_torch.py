@@ -1,6 +1,7 @@
 
 import argparse
 import numpy as np
+import torch
 
 # A script that can generate num_clusters vectors of data_dimension
 # and they are spread out in the space as much as possible. Calculates
@@ -24,8 +25,8 @@ args = parser.parse_args()
 
 def softmax(tensor, axis=-1):
     max = tensor.max(axis=axis, keepdims=True)
-    tens_max = tensor - max
-    exp = np.exp(tens_max)
+    tens_max = tensor - max.values
+    exp = torch.exp(tens_max)
     sum = exp.sum(axis=axis, keepdims=True)
     return exp / sum
 
@@ -49,15 +50,15 @@ for num_clusters in num_clusters_gen:
     for trial in range(num_trials):
         means = []
         maxes = []
-        clust_vecs = np.random.normal(size=(num_clusters, data_dimension)) / np.sqrt(data_dimension)
-        clust_vecs = clust_vecs / np.linalg.norm(clust_vecs, axis=-1)[:,None]
+        clust_vecs = torch.normal(0.0, torch.sqrt(torch.tensor(data_dimension)), size=(num_clusters, data_dimension))
+        clust_vecs = clust_vecs / torch.linalg.norm(clust_vecs, axis=-1)[:,None]
         min_max = (1.0 + max_adjust) / max_div
         count = 0
         learning_rate = 0.02
         for num_iters in range(300000):
             # breakpoint()
-            prod = (np.matmul(clust_vecs, np.transpose(clust_vecs)) + max_adjust) / max_div
-            prod -= (np.eye(num_clusters) * eye_correct)
+            prod = (torch.matmul(clust_vecs, torch.transpose(clust_vecs, 0, 1)) + max_adjust) / max_div
+            prod -= (torch.eye(num_clusters) * eye_correct)
             if args.use_softmax:
                 prod = softmax(prod, axis=-1)
             curr_max = prod.max()
@@ -77,12 +78,12 @@ for num_clusters in num_clusters_gen:
             diff = clust_vecs[:,None,:] - clust_vecs[None,:,:]
             grad = prod[:,:,None] * diff
             new_clust_vecs = clust_vecs + learning_rate * grad.sum(axis=1) / num_clusters
-            new_clust_vecs = new_clust_vecs / np.linalg.norm(new_clust_vecs, axis=-1)[:,None]
+            new_clust_vecs = new_clust_vecs / torch.linalg.norm(new_clust_vecs, axis=-1)[:,None]
             clust_vecs = new_clust_vecs
 
 
         # print(clust_vecs)
-        prod = np.matmul(clust_vecs, np.transpose(clust_vecs))
-        prod -= np.eye(num_clusters) * 2.0
+        prod = torch.matmul(clust_vecs, torch.transpose(clust_vecs, 0, 1))
+        prod -= torch.eye(num_clusters) * 2.0
         # breakpoint()
-        print(data_dimension, num_clusters, prod.max(), np.degrees(np.arccos(prod.max())), num_iters)
+        print(data_dimension, num_clusters, prod.max().item(), torch.rad2deg(torch.arccos(prod.max())).item(), num_iters)
