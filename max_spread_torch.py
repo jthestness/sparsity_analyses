@@ -15,11 +15,13 @@ import torch
 #     - This is because of recursive application of this property with orthogonal subspaces
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--num_iters', type=int, default=300000)
 parser.add_argument('--data_dimension', type=int, default=16)
 parser.add_argument('--full_grad', action="store_true")
 parser.add_argument('--num_clusters', type=int, default=None)
 parser.add_argument('--num_trials', type=int, default=1)
 parser.add_argument('--use_softmax', action="store_true")
+parser.add_argument('--decay_lr', action="store_true")
 args = parser.parse_args()
 
 
@@ -31,7 +33,9 @@ def softmax(tensor, axis=-1):
     return exp / sum
 
 data_dimension = args.data_dimension
+num_iters = args.num_iters
 num_trials = args.num_trials
+decay_learning_rate = args.decay_lr
 if not args.full_grad:
     max_adjust = 0.0
     max_div = 1.0
@@ -55,7 +59,7 @@ for num_clusters in num_clusters_gen:
         min_max = (1.0 + max_adjust) / max_div
         count = 0
         learning_rate = 0.02
-        for num_iters in range(300000):
+        for iter in range(num_iters):
             # breakpoint()
             prod = (torch.matmul(clust_vecs, torch.transpose(clust_vecs, 0, 1)) + max_adjust) / max_div
             prod -= (torch.eye(num_clusters) * eye_correct)
@@ -67,11 +71,11 @@ for num_clusters in num_clusters_gen:
                 min_max = curr_max
                 count = 0
             else:
-                if num_iters > 1000:
+                if iter > 1000:
                     count += 1
-                # if learning_rate > 0.00001 and count >= 200:
-                #     learning_rate /= 1.4142
-                #     count = 0
+                if decay_learning_rate and learning_rate > 0.00001 and count >= 200:
+                    learning_rate /= 1.1
+                    count = 0
                 if count >= 10000:
                     break
 
@@ -86,4 +90,4 @@ for num_clusters in num_clusters_gen:
         prod = torch.matmul(clust_vecs, torch.transpose(clust_vecs, 0, 1))
         prod -= torch.eye(num_clusters) * 2.0
         # breakpoint()
-        print(data_dimension, num_clusters, prod.max().item(), torch.rad2deg(torch.arccos(prod.max())).item(), num_iters)
+        print(data_dimension, num_clusters, prod.max().item(), torch.rad2deg(torch.arccos(prod.max())).item(), learning_rate, iter)

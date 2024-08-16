@@ -1,0 +1,24 @@
+Fatal Python error: initsite: Failed to import the site module
+Traceback (most recent call last):
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 586, in <module>
+    main()
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 569, in main
+    known_paths = venv(known_paths)
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 501, in venv
+    addsitepackages(known_paths, [sys.prefix])
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 349, in addsitepackages
+    addsitedir(sitedir, known_paths)
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 207, in addsitedir
+    addpackage(sitedir, name, known_paths)
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 168, in addpackage
+    exec(line)
+  File "<string>", line 1, in <module>
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/importlib/util.py", line 14, in <module>
+    from contextlib import contextmanager
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/contextlib.py", line 5, in <module>
+    from collections import deque
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/collections/__init__.py", line 27, in <module>
+    from reprlib import recursive_repr as _recursive_repr
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/reprlib.py", line 36, in <module>
+    class Repr:
+KeyboardInterrupt

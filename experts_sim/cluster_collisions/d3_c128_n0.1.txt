@@ -1,0 +1,17 @@
+Fatal Python error: initsite: Failed to import the site module
+Traceback (most recent call last):
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 73, in <module>
+    import os
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/os.py", line 661, in <module>
+    from _collections_abc import MutableMapping
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/_collections_abc.py", line 278, in <module>
+    Iterator.register(bytearray_iterator)
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/abc.py", line 135, in register
+    return _abc_register(cls, subclass)
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/abc.py", line 143, in __subclasscheck__
+    return _abc_subclasscheck(cls, subclass)
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/_collections_abc.py", line 274, in __subclasshook__
+    return _check_methods(C, '__iter__', '__next__')
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/_collections_abc.py", line 73, in _check_methods
+    mro = C.__mro__
+KeyboardInterrupt

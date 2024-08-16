@@ -1,0 +1,11 @@
+Fatal Python error: initsite: Failed to import the site module
+Traceback (most recent call last):
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 586, in <module>
+    main()
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 569, in main
+    known_paths = venv(known_paths)
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 470, in venv
+    exe_dir, _ = os.path.split(os.path.abspath(executable))
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/posixpath.py", line 109, in split
+    i = p.rfind(sep) + 1
+KeyboardInterrupt

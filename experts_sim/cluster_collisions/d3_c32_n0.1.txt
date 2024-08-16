@@ -1,0 +1,16 @@
+Fatal Python error: initsite: Failed to import the site module
+Traceback (most recent call last):
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 586, in <module>
+    main()
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 569, in main
+    known_paths = venv(known_paths)
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 501, in venv
+    addsitepackages(known_paths, [sys.prefix])
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 349, in addsitepackages
+    addsitedir(sitedir, known_paths)
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 207, in addsitedir
+    addpackage(sitedir, name, known_paths)
+  File "/usr/local/Cellar/python/3.7.3/Frameworks/Python.framework/Versions/3.7/lib/python3.7/site.py", line 168, in addpackage
+    exec(line)
+  File "<string>", line 1, in <module>
+KeyboardInterrupt

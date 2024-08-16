@@ -1,0 +1,3 @@
+cluster_collisions.new.py:60: RuntimeWarning: invalid value encountered in double_scalars
+  print(f'Swapped IDs: {args.data_dimension} {args.num_clusters} {args.noise_level} {sample_swaps} {total_samples} {1.0 - sample_swaps / total_samples} {std_swaps / sample_swaps}')
+Swapped IDs: 7 3 0.1 0.0 768 1.0 nan
